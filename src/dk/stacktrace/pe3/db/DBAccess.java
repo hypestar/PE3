@@ -7,54 +7,54 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
+
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
+
 import dk.stacktrace.pe3.car_business.Car;
 
 
 public class DBAccess {
-	
-		String dbUrl = "jdbc:mysql://127.0.0.1/MMM";
-		String dbClass = "com.mysql.jdbc.Driver";
-		Connection con;
-		Statement statement;
+
+		private Connection con;
+		private Statement statement;
 		
 		public DBAccess() {
 		
 		}
-
-		public static void main(String[] args) {
-	
-			DBAccess db = new DBAccess();
-			db.createCar("45656","VW" , "Transporter", "Sedan", "Donkey", 666, 43, "Brown", 666, "USA", "DK", 1964);
-		}
 		
-		private boolean connect()
+		private boolean connectCarDB()
 		{
-		
-		try {
-
-		Class.forName("com.mysql.jdbc.Driver");
-		con = DriverManager.getConnection(dbUrl, "root", "password");
-		return true;
-		} 
-
-		catch(ClassNotFoundException e) {
-		e.printStackTrace();
-		return false;
+			// Obtain our environment naming context
+			Context initCtx;
+			try {
+				initCtx = new InitialContext();
+				Context envCtx = (Context) initCtx.lookup("java:comp/env");
+				// Look up our data source
+				DataSource ds = (DataSource) envCtx.lookup("jdbc/MMM");
+				// Allocate and use a connection from the pool
+				con = ds.getConnection();
+				
+			} catch (NamingException e) {
+				e.printStackTrace();
+				return false;
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return false;
+			}
+			return true;
 		}
 
-		catch(SQLException e) {
-		e.printStackTrace();
-		return false;
-		}
-		
-		}	
 		
 		public Car getCarById(String carID) {
 			String query = "SELECT * FROM MMM.cars WHERE carid = \'" + carID + "\';";
 			Car car = null;
 			String carId, modelNumber, year, price, scale, modelManufacture, make, model, type;
 			
-			connect();
+			connectCarDB();
 			try {
 				statement = con.createStatement();
 				ResultSet rs = statement.executeQuery(query);
@@ -69,7 +69,6 @@ public class DBAccess {
 				year = Integer.toString(rs.getInt("production_year"));
 				scale = Integer.toString(rs.getInt("scale"));
 				price = Integer.toString(rs.getInt("price"));
-				System.out.println(modelNumber + " " + modelManufacture + " " + make + " " + model + " " + type + " " + year + " " + scale);
 				
 				car = new Car(carId, modelNumber, modelManufacture, make, model, type, year, scale, price);
 				con.close();
@@ -86,7 +85,7 @@ public class DBAccess {
 			ArrayList<Car> allCars = new ArrayList<Car>();
 			String carId, modelNumber, year, price, scale, modelManufacture, make, model, type;
 			
-			connect();
+			connectCarDB();
 			try {
 				statement = con.createStatement();
 				ResultSet rs = statement.executeQuery(query);
@@ -128,22 +127,18 @@ public class DBAccess {
 			}
 			else
 			{
-
 				sql = "INSERT INTO `MMM`.`cars` (`carid`, `model_number`, `make`, `model`, `type`, `model_manufacture`, `price`, `scale`, `color`, `weight`, `country_manufacture`, `country_production`, `production_year`) " + 
 				"VALUES (\'" + modelNumber + modelManufacture + "\', \'" + modelNumber + "\', \'" + make + "\', \'" + model + "\', \'" + type + "\', \'" + modelManufacture + "\', \'" + price + "\', \'" + scale + "\', \'" + color + "\', \'" + weight + "\', \'" + countryManufacture + "\', \'" + countryProduction + "\' , \'" + productionYear + "\')";
 				
-				connect();
+				connectCarDB();
 				try {
 					statement = con.createStatement();
 					statement.executeUpdate(sql);
 					con.close();
-
 					return true;
 				} catch (SQLException e) {
-					System.out.println("Damn");
 					return false;
 				}
 			}
 		}
 }
- 
